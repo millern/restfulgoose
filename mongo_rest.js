@@ -48,21 +48,50 @@ module.exports = function(){
         }
       ],
       'POST': [
+        {
+          root: function(collection){
+            console.log("add a new record");
+            client.open(function(err,p_client){
+              client.collection(collection,function(err,collection){
+                collection.insert(req.body, {safe:true}, function(err,result){
+                  if (err){
+                    res.end("An error occured");
+                  } else {
+                    console.log(JSON.stringify(result[0]) + " inserted");
+                    res.end(JSON.stringify(result[0]));
+                    client.close();
+                  }
+                });
+              });
+            });
+          },
+          id: function(collection, query){
+            console.log("updating a record");
+            client.open(function(err,p_client){
+              client.collection(collection,function(err,collection){
+                collection.update({_id: new BSON.ObjectID(query)}, req.body, function(err, item) {
+                  console.log(JSON.stringify(item) + " updated");
+                  res.end(JSON.stringify(item));
+                  client.close();
+                });
+              });
+            });
+          }
+        }
       ]
     };
     var trailblazer = function(collection, id, method){
-      if (id){
-        routes[method][0].id.apply(null,[collection, id]);
-      } else {
-        routes[method][0].root.apply(null,[collection]);
-      }
+        if (id){
+          routes[method][0].id.apply(null,[collection, id]);
+        } else {
+          routes[method][0].root.apply(null,[collection]);
+        }
     };
     var pathParts = url.parse(req.url).pathname.split('/');
     var method = req.method;
     var base = pathParts[1];
     var collection = pathParts[2];
     var id = pathParts[3];
-    console.log("path parts: ",pathParts);
     if(base === collections.basepath){
       trailblazer(collection, id, method);
     } else {

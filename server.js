@@ -4,7 +4,8 @@ var mongodb = require('mongodb');
 var connectRoute = require('connect-route');
 var mongo_rest = require('./mongo_rest.js');
 var app = connect(
-  connect.static(__dirname)
+  connect.static(__dirname),
+  connect.bodyParser()
   );
 app.use(mongo_rest());
 
