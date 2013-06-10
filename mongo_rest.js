@@ -1,19 +1,10 @@
-var collections = {
-  basepath: 'api',
-  robots: {
-    methods: ['GET','POST'],
-    path: "robots"
-  }
-};
 var url = require('url');
 var mongodb = require('mongodb');
 var BSON = mongodb.BSONPure;
-var mongoserver = new mongodb.Server('localhost', mongodb.Connection.DEFAULT_PORT,{});
-var client = new mongodb.Db(collections.robots.path, mongoserver,{w:1});
 
-
-
-module.exports = function(){
+module.exports = function(collections){
+  var mongoserver = new mongodb.Server('localhost', mongodb.Connection.DEFAULT_PORT,{});
+  var client = new mongodb.Db(collections.dbname, mongoserver,{w:1});
   return function(req,res,next){
     var routes = {
       'GET': [
