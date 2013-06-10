@@ -1,0 +1,29 @@
+<html>
+<head>
+  <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+</head>
+<body>
+
+    Test message
+
+<button class="testPost">Post to server</button>
+<p>Results</p>
+<script>
+$('.testPost').on('click', function(e){
+  $.ajax('http://localhost:8080/api/robots',
+      {contentType: "application/json",
+      data: "nick",
+      type: "POST",
+      success: function(data){
+        console.log(data);
+        $('p').text(data);
+      },
+      error: function(){
+        console.log("error");
+      }
+    });
+})
+
+</script>
+</body>
+</html>

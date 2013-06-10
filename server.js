@@ -1,13 +1,12 @@
 var http = require('http');
 var connect = require('connect');
 var mongodb = require('mongodb');
+var connectRoute = require('connect-route');
 var mongo_rest = require('./mongo_rest.js');
-var app = connect();
+var app = connect(
+  connect.static(__dirname)
+  );
 app.use(mongo_rest());
-
-//var mongoserver = new mongodb.Server('localhost', mongodb.Connection.DEFAULT_PORT,{});
-//var db_connector = new mongodb.Db("robots",mongoserver,{w:1});
-//server.use('mongo_rest');
 
 var ip = '10.0.1.82';
 var port = 8080;
