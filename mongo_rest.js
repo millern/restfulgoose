@@ -1,10 +1,13 @@
 var url = require('url');
+var _ = require('underscore');
 var mongodb = require('mongodb');
+var mongoose = require('mongoose');
 var BSON = mongodb.BSONPure;
 
-module.exports = function(collections){
+module.exports = function(params){
   var mongoserver = new mongodb.Server('localhost', mongodb.Connection.DEFAULT_PORT,{});
-  var client = new mongodb.Db(collections.dbname, mongoserver,{w:1});
+  var client = new mongodb.Db(params.dbname, mongoserver,{w:1});
+
   return function(req,res,next){
     var routes = {
       'GET': [
@@ -71,22 +74,29 @@ module.exports = function(collections){
         }
       ]
     };
-    var trailblazer = function(collection, id, method){
-        if (id){
-          routes[method][0].id.apply(null,[collection, id]);
-        } else {
-          routes[method][0].root.apply(null,[collection]);
-        }
+    var trailblazer = function(collection, query, method){
+      if (query){
+        routes[method][0].id.apply(null,[collection, query]);
+      } else {
+        routes[method][0].root.apply(null,[collection]);
+      }
     };
     var pathParts = url.parse(req.url).pathname.split('/');
-    var method = req.method;
-    var base = pathParts[1];
-    var collection = pathParts[2];
-    var id = pathParts[3];
-    if(base === collections.basepath){
-      trailblazer(collection, id, method);
+    var collectionName = pathParts[2];
+    var idOrQuery = pathParts[3];
+
+    function callPath() {
+      trailblazer(collectionName, idOrQuery, req.method);  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
+    }
+    if (params.collections.hasOwnProperty(collectionName) && _.contains(params.collections[collectionName].methods,req.method)){
+      var auth = params.collections[collectionName].auth;
+      if (typeof auth === "function") {
+        auth(req, res, callPath);
+      }
+      else {
+        callPath();
+      }
     } else {
-      console.log("calling next module");
       next();
     }
   };
