@@ -1,27 +1,22 @@
 var url = require('url');
 var _ = require('underscore');
+var querystring = require('querystring');
 var mongodb = require('mongodb');
 var mongoose = require('mongoose');
 var BSON = mongodb.BSONPure;
 
 module.exports = function(params){
-  //get list of mongo models 
-  var models = [];
-  for (var coll in params.collections) {
-    console.log(JSON.stringify(coll));
-    if (params.collections[coll].hasOwnProperty('model')) {
-      console.log("found model");
-      models.push(params.collections[coll].model);
-    } else {
-      if (coll.hasOwnProperty('url') && coll.hasOwnProperty('schema')){
-        mongoose.connect(coll.url);
-        var db = mongoose.conneciton;
-        db.on('error',console.error.bind(console, 'connection error:'));
-        db.once('open',function(){
-          //Set the model property of the collection using the db and schema
-        });
+//build models if none passed in
+  if (params.hasOwnProperty('url')){
+    mongoose.connect(params.url);
+    var db = mongoose.connection;
+    db.on('error',console.error.bind(console, 'connection error:'));
+    db.once('open',function(){
+      for (var coll in params.collections){
+        params.collections[coll].model = mongoose.model(coll, params.collections[coll].schema);
       }
-    }
+
+    });
   }
 
 
@@ -83,9 +78,13 @@ module.exports = function(params){
     var api = pathParts[1];
     var collectionName = pathParts[2];
     var idOrQuery = pathParts[3];
+    function buildQuery(idOrQuery) {
 
+      return idOrQuery;
+    }
     function callPath() {
-      trailblazer(model, idOrQuery, req.method);  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
+      var query = buildQuery(idOrQuery);
+      trailblazer(model, query, req.method);  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
     }
     if (params.collections.hasOwnProperty(collectionName) && _.contains(params.collections[collectionName].methods,req.method) && params.basepath === api){
       var auth = params.collections[collectionName].auth;

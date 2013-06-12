@@ -31,50 +31,81 @@ passport.use(new BasicStrategy(
 ));
 
 
-//set up mongodb connection, schema, and model.  Pass models using either url/schema or model
-mongoose.connect('mongodb://localhost/robots');
-var db = mongoose.connection;
-db.on('error',console.error.bind(console, 'connection error:'));
-db.once('open',function(){
-  console.log("connection opened");
+//CONNECTION CASE 1:  set up mongodb connection, schema, and model.  Pass models using either url/schema or model
+// mongoose.connect('mongodb://localhost/robots');
+// var db = mongoose.connection;
+// db.on('error',console.error.bind(console, 'connection error:'));
+// db.once('open',function(){
+//   console.log("connection opened");
+//   var robotSchema = mongoose.Schema({
+//     name: String,
+//     law: Number
+//   });
+//   var Robot = mongoose.model('Robot',robotSchema);
+//   var fruitSchema = mongoose.Schema({
+//     name: String,
+//     color: String,
+//     taste: String
+//   });
+//   var Fruit = mongoose.model('Fruit', fruitSchema);
+// app.use(mongo_rest({
+//   basepath: 'api',
+//   dbname: 'robots',
+//   collections: {
+//     robots: {
+//       auth: passport.authenticate('basic', { session: false }),
+//       methods: ['GET','POST', 'PUT'],
+//       path: "robots",
+//       //schema: roboSchema,
+//       //url: 'mongodb://localhost/robots',
+//       //model: Robot,
+//       queryfields: ["name", "law"]
+//     },
+//     fruits: {
+//       methods: ['GET', 'POST','PUT'],
+//       path: "fruits",
+//       schema: fruitSchema,
+//       url: 'mongodb://localhost/robots',
+//       //model: Fruit,
+//       queryfields: ["name", "color", "taste"]
+//     }
+//   }
+// }));
+// });
+//CONNECTION CASE 2
   var robotSchema = mongoose.Schema({
     name: String,
     law: Number
   });
-  var Robot = mongoose.model('Robot',robotSchema);
   var fruitSchema = mongoose.Schema({
     name: String,
     color: String,
     taste: String
   });
-  var Fruit = mongoose.model('Fruit', fruitSchema);
 app.use(mongo_rest({
   basepath: 'api',
   dbname: 'robots',
+  url: 'mongodb://localhost/robots',
   collections: {
     robots: {
       auth: passport.authenticate('basic', { session: false }),
       methods: ['GET','POST', 'PUT'],
       path: "robots",
-      //schema: roboSchema,
+      schema: robotSchema,
       //url: 'mongodb://localhost/robots',
-      model: Robot,
+      //model: Robot,
       queryfields: ["name", "law"]
     },
     fruits: {
       methods: ['GET', 'POST','PUT'],
       path: "fruits",
-      //schema: animalSchema,
+      schema: fruitSchema,
       //url: 'mongodb://localhost/robots',
-      model: Fruit,
+      //model: Fruit,
       queryfields: ["name", "color", "taste"]
     }
   }
 }));
-});
-// TEST: Use the auth
-// app.use(passport.authenticate('basic', { session: false }));
-
 
 var ip = '0.0.0.0';
 var port = 8080;
