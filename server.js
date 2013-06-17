@@ -109,7 +109,7 @@ app.use(mongo_rest({
       queryfields: ["name", "color", "taste"]
     },
     tests: {
-      methods: ['GET', 'POST', 'PUT'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE'],
       path: 'tests',
       schema: testSchema,
       queryFields: ['prop1', 'prop2']

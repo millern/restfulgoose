@@ -64,10 +64,22 @@ module.exports = function(params){
           });
         }
       }
+      ],
+      'DELETE': [
+      {
+        id: function(model, query){
+          console.log('deleting record ' + query);
+          model.findByIdAndRemove(query, function(err, docx){
+            console.log('found record ' + docx);
+            res.end(JSON.stringify("Document removed"));
+          });
+        }
+      }
       ]
     };
     var trailblazer = function(model, query, method){
       if (query){
+        console.log(query);
         routes[method][0].id.apply(null,[model, query]);
       } else {
         routes[method][0].root.apply(null,[model]);

@@ -34,4 +34,11 @@ suite.discuss('requests')
      var result = JSON.parse(body);
      assert.equal(result.prop1,90);
   })
+  .next()
+  .del('/api/tests/51bcb778ae39aff660000001',{})
+  .expect(200)
+  .expect("should return a confirmation", function(err, res, body){
+    console.log(body);
+    assert.equal(body, "Document removed");
+  })
   .export(module);
