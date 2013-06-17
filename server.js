@@ -82,13 +82,17 @@ passport.use(new BasicStrategy(
     color: String,
     taste: String
   });
+  var testSchema = mongoose.Schema({
+    prop1: Number,
+    prop2: String
+  });
 app.use(mongo_rest({
   basepath: 'api',
   dbname: 'robots',
   url: 'mongodb://localhost/robots',
   collections: {
     robots: {
-      auth: passport.authenticate('basic', { session: false }),
+      //auth: passport.authenticate('basic', { session: false }),
       methods: ['GET','POST', 'PUT'],
       path: "robots",
       schema: robotSchema,
@@ -98,11 +102,17 @@ app.use(mongo_rest({
     },
     fruits: {
       methods: ['GET', 'POST','PUT'],
-      path: "fruits",
+      path: 'fruits',
       schema: fruitSchema,
       //url: 'mongodb://localhost/robots',
       //model: Fruit,
       queryfields: ["name", "color", "taste"]
+    },
+    tests: {
+      methods: ['GET', 'POST', 'PUT'],
+      path: 'tests',
+      schema: testSchema,
+      queryFields: ['prop1', 'prop2']
     }
   }
 }));
