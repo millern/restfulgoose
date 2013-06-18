@@ -114,7 +114,8 @@ app.use(mongo_rest({
       schema: testSchema,
       queryfields: ['prop1', 'prop2'],
       options: {
-        sortBy:'-prop1' //pass as "propname" or "-propname"
+        sortBy: '-prop1', //pass as "propname" or "-propname"
+        selectFields: ['prop1', 'prop2']
       }
     }
   }

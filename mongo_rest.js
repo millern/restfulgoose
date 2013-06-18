@@ -15,7 +15,6 @@ module.exports = function(params){
       for (var coll in params.collections){
         params.collections[coll].model = mongoose.model(coll, params.collections[coll].schema);
       }
-
     });
   }
 
@@ -25,14 +24,27 @@ module.exports = function(params){
       console.log("...find all by model...");
       var query = model.find({});
       determineSortOrder(query, collectionName);
+      determineSelectFields(query, collectionName);
+      determineSearchQuery(query, params, collectionName);
       query.exec(function(err, documents){
         res.end(JSON.stringify(documents));
       });
     };
     var determineSortOrder = function(query, collectionName){
       var sortBy = params.collections[collectionName].options.sortBy || '';
-      console.log(sortBy);
       query.sort(sortBy);
+    };
+    var determineSelectFields = function(query, collectionName){
+      var selectFields = params.collections[collectionName].options.selectFields;
+      if(selectFields && selectFields.length > 0){
+        query.select(selectFields.join(' '));
+      }
+    };
+    var determineSearchQuery = function(query, params, collectionName){
+      if(Object.keys(params).length > 0){
+        console.log(params);
+        query.find(params);
+      }
     };
     var locate = function(model, params){
       console.log('finding by id: ' + params);
@@ -90,18 +102,18 @@ module.exports = function(params){
       return regID.test(id);
     }
 
-    function buildQuery(idOrQuery) {
-      if (isValidId(idOrQuery)){
-        console.log("searching by id: " + idOrQuery);
-        return idOrQuery;
+    function buildQuery() {
+      if (isValidId(id)){
+        console.log("searching by id: " + id);
+        return id;
       } else {
-        console.log("constructing query from string: " + idOrQuery);
-        return idOrQuery; //TODO no good
+        console.log("constructing query from string: " + queryParams);
+        return queryParams;
       }
     }
 
     function callPath() {
-      var query = buildQuery(id);
+      var query = buildQuery();
       trailblazer(model, query, req.method, collectionName);  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
     }
 
