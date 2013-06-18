@@ -21,35 +21,42 @@ module.exports = function(params){
 
 
   return function(req,res,next){
-    var root = function(model, query){
+    var root = function(model, params, collectionName){
       console.log("...find all by model...");
-      model.find({}, function(err, documents){
+      var query = model.find({});
+      determineSortOrder(query, collectionName);
+      query.exec(function(err, documents){
         res.end(JSON.stringify(documents));
       });
     };
-    var locate = function(model, query){
-      console.log('finding by id: ' + query);
-      model.findById(query, function(err, document) {
+    var determineSortOrder = function(query, collectionName){
+      var sortBy = params.collections[collectionName].options.sortBy || '';
+      console.log(sortBy);
+      query.sort(sortBy);
+    };
+    var locate = function(model, params){
+      console.log('finding by id: ' + params);
+      model.findById(params, function(err, document) {
         res.end(JSON.stringify(document));
       });
     };
-    var create = function(model, query){
+    var create = function(model, params){
       console.log("...insert a new record...");
       model.create(req.body, function(err, document){
         console.log(document + " inserted");
         res.end(JSON.stringify(document));
       });
     };
-    var modify = function(model, query){
-      console.log('updating record ' + query);
-      model.findByIdAndUpdate(query, req.body, function(err, document){
+    var modify = function(model, params){
+      console.log('updating record ' + params);
+      model.findByIdAndUpdate(params, req.body, function(err, document){
         console.log(JSON.stringify(document));
         res.end(JSON.stringify(document));
       });
     };
-    var remove = function(model, query){
-      console.log('deleting record ' + query);
-      model.findByIdAndRemove(query, function(err, docx){
+    var remove = function(model, params){
+      console.log('deleting record ' + params);
+      model.findByIdAndRemove(params, function(err, docx){
         console.log('found record ' + docx);
         res.end("Document removed");
       });
@@ -57,9 +64,9 @@ module.exports = function(params){
     var trailblazer = function(model, query, method){
       if (method === 'GET'){
         if (isValidId(query)){
-          locate(model, query);
+          locate(model, query, collectionName);
         } else {
-          root(model, query);
+          root(model, query, collectionName);
         }
       } else if (method === 'POST'){
         create(model, query);
@@ -95,8 +102,7 @@ module.exports = function(params){
 
     function callPath() {
       var query = buildQuery(id);
-      console.log("query: " + query);
-      trailblazer(model, query, req.method);  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
+      trailblazer(model, query, req.method, collectionName);  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
     }
 
     if (params.collections.hasOwnProperty(collectionName) && _.contains(params.collections[collectionName].methods,req.method) && params.basepath === api){
