@@ -21,68 +21,52 @@ module.exports = function(params){
 
 
   return function(req,res,next){
-    var routes = {
-      'GET': [
-        {
-          root:  function(model){
-            console.log("find all by model");
-            model.find({}, function(err, documents){
-              res.end(JSON.stringify(documents));
-            });
-          },
-          id: function(model, query){
-            console.log('finding by id: ' + query);
-              model.findById(query, function(err, document) {
-                res.end(JSON.stringify(document));
-              });
-           },
-          query: function(collection, query){
-            console.log('query');
-            res.end(JSON.stringify("queried by query"));
-            client.close();
-          }
-        }
-      ],
-      'POST': [
-        {
-          root: function(model){
-            console.log("Insert a new record");
-            model.create(req.body, function(err, document){
-              console.log(document + " inserted");
-              res.end(JSON.stringify(document));
-            });
-          }
-        }
-      ],
-      'PUT': [
-      {
-        id: function(model, query){
-          console.log('updating record ' + query);
-          model.findByIdAndUpdate(query, req.body, function(err, document){
-            console.log(JSON.stringify(document));
-            res.end(JSON.stringify(document));
-          });
-        }
-      }
-      ],
-      'DELETE': [
-      {
-        id: function(model, query){
-          console.log('deleting record ' + query);
-          model.findByIdAndRemove(query, function(err, docx){
-            console.log('found record ' + docx);
-            res.end("Document removed");
-          });
-        }
-      }
-      ]
+    var root = function(model, query){
+      console.log("...find all by model...");
+      model.find({}, function(err, documents){
+        res.end(JSON.stringify(documents));
+      });
+    };
+    var locate = function(model, query){
+      console.log('finding by id: ' + query);
+      model.findById(query, function(err, document) {
+        res.end(JSON.stringify(document));
+      });
+    };
+    var create = function(model, query){
+      console.log("...insert a new record...");
+      model.create(req.body, function(err, document){
+        console.log(document + " inserted");
+        res.end(JSON.stringify(document));
+      });
+    };
+    var modify = function(model, query){
+      console.log('updating record ' + query);
+      model.findByIdAndUpdate(query, req.body, function(err, document){
+        console.log(JSON.stringify(document));
+        res.end(JSON.stringify(document));
+      });
+    };
+    var remove = function(model, query){
+      console.log('deleting record ' + query);
+      model.findByIdAndRemove(query, function(err, docx){
+        console.log('found record ' + docx);
+        res.end("Document removed");
+      });
     };
     var trailblazer = function(model, query, method){
-      if (query){
-        console.log(query);
-        routes[method][0].id.apply(null,[model, query]);
-      } else {
-        routes[method][0].root.apply(null,[model]);
+      if (method === 'GET'){
+        if (isValidId(query)){
+          locate(model, query);
+        } else {
+          root(model, query);
+        }
+      } else if (method === 'POST'){
+        create(model, query);
+      } else if (method === 'PUT'){
+        modify(model, query);
+      } else if (method === 'DELETE'){
+        remove(model, query);
       }
     };
 
@@ -94,13 +78,13 @@ module.exports = function(params){
     var queryParams = bar.query;
 
 
-    function idValid(id){
+    function isValidId(id){
       var regID = /[0-9a-z]{24}$/;
       return regID.test(id);
     }
 
     function buildQuery(idOrQuery) {
-      if (idValid(idOrQuery)){
+      if (isValidId(idOrQuery)){
         console.log("searching by id: " + idOrQuery);
         return idOrQuery;
       } else {
