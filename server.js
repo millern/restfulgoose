@@ -92,20 +92,16 @@ app.use(mongo_rest({
   url: 'mongodb://localhost/robots',
   collections: {
     robots: {
-      //auth: passport.authenticate('basic', { session: false }),
+      auth: passport.authenticate('basic', { session: false }),
       methods: ['GET','POST', 'PUT'],
       path: "robots",
       schema: robotSchema,
-      //url: 'mongodb://localhost/robots',
-      //model: Robot,
       queryfields: ["name", "law"]
     },
     fruits: {
       methods: ['GET', 'POST','PUT'],
       path: 'fruits',
       schema: fruitSchema,
-      //url: 'mongodb://localhost/robots',
-      //model: Fruit,
       queryfields: ["name", "color", "taste"]
     },
     tests: {
@@ -127,10 +123,3 @@ var port = 8080;
 http.createServer(app).listen(port);
 console.log("listening on "+ ip + ": " + port);
 
-var collections = {
-  basepath: 'api',
-  robots: {
-    methods: ['GET','POST'],
-    path: "robots"
-  }
-};

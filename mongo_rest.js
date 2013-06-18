@@ -1,125 +1,120 @@
 var url = require('url');
 var _ = require('underscore');
 var querystring = require('querystring');
-var mongodb = require('mongodb');
 var mongoose = require('mongoose');
-var BSON = mongodb.BSONPure;
 
-module.exports = function(params){
+module.exports = function(settings){
 //build models if none passed in
-  if (params.hasOwnProperty('url')){
-    mongoose.connect(params.url);
+  if (settings.hasOwnProperty('url')){
+    mongoose.connect(settings.url);
     var db = mongoose.connection;
     db.on('error',console.error.bind(console, 'connection error:'));
     db.once('open',function(){
-      for (var coll in params.collections){
-        params.collections[coll].model = mongoose.model(coll, params.collections[coll].schema);
+      for (var coll in settings.collections){
+        settings.collections[coll].model = mongoose.model(coll, settings.collections[coll].schema);
       }
     });
   }
 
 
   return function(req,res,next){
-    var root = function(model, params, collectionName){
+    var root = function(model, urlParams){
       console.log("...find all by model...");
       var query = model.find({});
-      determineSortOrder(query, collectionName);
-      determineSelectFields(query, collectionName);
-      determineSearchQuery(query, params, collectionName);
+      chooseSortOrder(query, urlParams.collectionName);
+      chooseSelectFields(query, urlParams.collectionName);
+      chooseSearchQuery(query, urlParams.queryParams);
       query.exec(function(err, documents){
         res.end(JSON.stringify(documents));
       });
     };
-    var determineSortOrder = function(query, collectionName){
-      var sortBy = params.collections[collectionName].options.sortBy || '';
-      query.sort(sortBy);
-    };
-    var determineSelectFields = function(query, collectionName){
-      var selectFields = params.collections[collectionName].options.selectFields;
-      if(selectFields && selectFields.length > 0){
-        query.select(selectFields.join(' '));
+    var chooseSortOrder = function(query, collectionName){
+      if (settings.collections[collectionName].options){
+        var sortBy = settings.collections[collectionName].options.sortBy || '';
+        query.sort(sortBy);
       }
     };
-    var determineSearchQuery = function(query, params, collectionName){
-      if(Object.keys(params).length > 0){
-        console.log(params);
-        query.find(params);
+    var chooseSelectFields = function(query, collectionName){
+      if(settings.collections[collectionName].options){
+        var selectFields = settings.collections[collectionName].options.selectFields;
+        if(selectFields && selectFields.length > 0){
+          query.select(selectFields.join(' '));
+        }
       }
     };
-    var locate = function(model, params){
-      console.log('finding by id: ' + params);
-      model.findById(params, function(err, document) {
+    var chooseSearchQuery = function(query, queryParams){
+      //parameters from query string
+      if(Object.keys(queryParams).length > 0){
+        query.find(queryParms);
+      }
+    };
+    var show = function(model, urlParams){
+      console.log('finding by id: ' + urlParams);
+      model.findById(urlParams, function(err, document) {
         res.end(JSON.stringify(document));
       });
     };
-    var create = function(model, params){
+    var create = function(model, urlParams){
       console.log("...insert a new record...");
       model.create(req.body, function(err, document){
         console.log(document + " inserted");
         res.end(JSON.stringify(document));
       });
     };
-    var modify = function(model, params){
-      console.log('updating record ' + params);
-      model.findByIdAndUpdate(params, req.body, function(err, document){
+    var modify = function(model, urlParams){
+      console.log('updating record ' + urlParams.id);
+      model.findByIdAndUpdate(urlParams, req.body, function(err, document){
         console.log(JSON.stringify(document));
         res.end(JSON.stringify(document));
       });
     };
-    var remove = function(model, params){
-      console.log('deleting record ' + params);
-      model.findByIdAndRemove(params, function(err, docx){
+    var remove = function(model, urlParams){
+      console.log('deleting record ' + urlParams.id);
+      model.findByIdAndRemove(urlParams, function(err, docx){
         console.log('found record ' + docx);
         res.end("Document removed");
       });
     };
-    var trailblazer = function(model, query, method){
+    var trailblazer = function(model, urlParams, method){
       if (method === 'GET'){
-        if (isValidId(query)){
-          locate(model, query, collectionName);
+        if (urlParams.id){
+          show(model, urlParams.id, urlParams.collectionName);
         } else {
-          root(model, query, collectionName);
+          root(model, urlParams);
         }
       } else if (method === 'POST'){
-        create(model, query);
+        create(model, urlParams.id);
       } else if (method === 'PUT'){
-        modify(model, query);
+        modify(model, urlParams.id);
       } else if (method === 'DELETE'){
-        remove(model, query);
+        remove(model, urlParams.id);
       }
     };
 
-    var bar = url.parse(req.url, true);
-    var pathParts = bar.pathname.split('/');
+    var parsedUrl = url.parse(req.url, true);
+    var pathParts = parsedUrl.pathname.split('/');
     var api = pathParts[1];
     var collectionName = pathParts[2];
-    var id = pathParts[3];
-    var queryParams = bar.query;
 
+    var urlParams = {
+      collectionName: pathParts[2],
+      id: isValidId(pathParts[3]) ? pathParts[3] : null,
+      nestedQuery: pathParts[4],
+      queryParams: parsedUrl.query
+    };
 
     function isValidId(id){
       var regID = /[0-9a-z]{24}$/;
       return regID.test(id);
     }
 
-    function buildQuery() {
-      if (isValidId(id)){
-        console.log("searching by id: " + id);
-        return id;
-      } else {
-        console.log("constructing query from string: " + queryParams);
-        return queryParams;
-      }
-    }
-
     function callPath() {
-      var query = buildQuery();
-      trailblazer(model, query, req.method, collectionName);  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
+      trailblazer(model, urlParams, req.method);  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
     }
 
-    if (params.collections.hasOwnProperty(collectionName) && _.contains(params.collections[collectionName].methods,req.method) && params.basepath === api){
-      var auth = params.collections[collectionName].auth;
-      var model = params.collections[collectionName].model;
+    if (settings.collections.hasOwnProperty(collectionName) && _.contains(settings.collections[collectionName].methods,req.method) && settings.basepath === api){
+      var auth = settings.collections[collectionName].auth;
+      var model = settings.collections[collectionName].model;
       if (typeof auth === "function") {
         auth(req, res, callPath);
       }
