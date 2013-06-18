@@ -71,7 +71,7 @@ module.exports = function(params){
           console.log('deleting record ' + query);
           model.findByIdAndRemove(query, function(err, docx){
             console.log('found record ' + docx);
-            res.end(JSON.stringify("Document removed"));
+            res.end("Document removed");
           });
         }
       }
@@ -86,18 +86,35 @@ module.exports = function(params){
       }
     };
 
-    var pathParts = url.parse(req.url).pathname.split('/');
+    var bar = url.parse(req.url, true);
+    var pathParts = bar.pathname.split('/');
     var api = pathParts[1];
     var collectionName = pathParts[2];
-    var idOrQuery = pathParts[3];
-    function buildQuery(idOrQuery) {
+    var id = pathParts[3];
+    var queryParams = bar.query;
 
-      return idOrQuery;
+
+    function idValid(id){
+      var regID = /[0-9a-z]{24}$/;
+      return regID.test(id);
     }
+
+    function buildQuery(idOrQuery) {
+      if (idValid(idOrQuery)){
+        console.log("searching by id: " + idOrQuery);
+        return idOrQuery;
+      } else {
+        console.log("constructing query from string: " + idOrQuery);
+        return idOrQuery; //TODO no good
+      }
+    }
+
     function callPath() {
-      var query = buildQuery(idOrQuery);
+      var query = buildQuery(id);
+      console.log("query: " + query);
       trailblazer(model, query, req.method);  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
     }
+
     if (params.collections.hasOwnProperty(collectionName) && _.contains(params.collections[collectionName].methods,req.method) && params.basepath === api){
       var auth = params.collections[collectionName].auth;
       var model = params.collections[collectionName].model;

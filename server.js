@@ -112,7 +112,10 @@ app.use(mongo_rest({
       methods: ['GET', 'POST', 'PUT', 'DELETE'],
       path: 'tests',
       schema: testSchema,
-      queryFields: ['prop1', 'prop2']
+      queryfields: ['prop1', 'prop2'],
+      options: {
+        sortBy:'name'
+      }
     }
   }
 }));
