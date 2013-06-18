@@ -17,6 +17,13 @@ suite.discuss('requests')
      assert(_.contains(_(result).pluck('prop1'),12));
      assert(_.contains(_(result).pluck('prop1'),13));
   })
+  .get('/api/tests/51bcb778ae39aff660000001')
+  .expect(200)
+  .expect("should return a single result", function(err, res, body){
+    var result = JSON.parse(body);
+    assert.equal(result.prop1,4);
+    assert.equal(result.prop2,"Nick");
+  })
   .next()
   .setHeader('Content-Type', 'application/json')
   .post('/api/tests',{prop1: 8, prop2: "Tiger"})
@@ -24,7 +31,6 @@ suite.discuss('requests')
   .expect("should respond with the inserted element", function(err, res, body){
      var result = JSON.parse(body);
      assert.equal(result.prop1,8);
-     console.log(result._id);
      postID = result._id;
   })
   .next()
@@ -38,7 +44,6 @@ suite.discuss('requests')
   .del('/api/tests/51bcb778ae39aff660000001',{})
   .expect(200)
   .expect("should return a confirmation", function(err, res, body){
-    console.log(body);
     assert.equal(body, "Document removed");
   })
   .export(module);
