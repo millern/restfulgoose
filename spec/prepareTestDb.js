@@ -17,5 +17,7 @@ db.once('open',function(){
   nick = new testModel({prop1: 4, prop2: "Nick", _id: new BSON.ObjectID("51bcb778ae39aff660000001")});
   tucker = new testModel({prop1: 12, prop2: "Tucker"});
   fred = new testModel({prop1: 13, prop2: "Fred"});
-  nick.save(); tucker.save(); fred.save();
+  alan = new testModel({prop1: 1, prop2: "Alan"});
+  ziggy = new testModel({prop1: 99, prop2: "Ziggy"});
+  nick.save(); tucker.save(); fred.save(); alan.save(); ziggy.save();
   });
