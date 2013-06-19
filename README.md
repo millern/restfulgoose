@@ -1,11 +1,11 @@
-# Mongoose - Rest - Middleware 
+# Mongoose - REST - Middleware 
 
 Express middleware to create a RESTful API from a mongo database. 
 
 # Installation
 
 ```bash
- $npm install restigoose
+ $npm install mongo_rest
 ```
 # Usage
 
