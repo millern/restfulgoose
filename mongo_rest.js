@@ -25,7 +25,7 @@ module.exports = function(settings){
       chooseSelectFields(query, urlParams.collectionName);
       chooseSearchQuery(query, urlParams.queryParams);
       query.exec(function(err, documents){
-        res.end(JSON.stringify(documents));
+      res.end(JSON.stringify(documents));
       });
     };
     var chooseSortOrder = function(query, collectionName){
@@ -45,7 +45,7 @@ module.exports = function(settings){
     var chooseSearchQuery = function(query, queryParams){
       //parameters from query string
       if(Object.keys(queryParams).length > 0){
-        query.find(queryParms);
+        query.find(queryParams);
       }
     };
     var show = function(model, urlParams){
