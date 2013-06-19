@@ -1,17 +1,3 @@
-#Mongoose - Rest - Middleware [![Build Status]]
-
-Express middleware to create a RESTful API from a mongo database. 
-
-#Installation
-
-```bash
- $npm install restigoose
-```
-#Usage
-
-See `example` directory for a working server
-
-```js
 var app = require('express')();
 var mongoose = require('mongoose');
 var mongo_rest = require('../mongo_rest.js');
@@ -35,8 +21,3 @@ app.use(mongo_rest({
 }));
 
 app.listen(8081);
-```
-
-##Authorization
-
-#Example
