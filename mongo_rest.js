@@ -6,10 +6,12 @@ var mongoose = require('mongoose');
 module.exports = function(settings){
 //build models if none passed in
   if (settings.hasOwnProperty('url')){
-    mongoose.connect(settings.url);
+    console.log('url found');
+    mongoose.connect(settings.url + '/' + settings.dbname);
     var db = mongoose.connection;
     db.on('error',console.error.bind(console, 'connection error:'));
     db.once('open',function(){
+      console.log('db connection opened');
       for (var coll in settings.collections){
         settings.collections[coll].model = mongoose.model(coll, settings.collections[coll].schema);
       }
@@ -63,16 +65,20 @@ module.exports = function(settings){
     };
     var modify = function(model, urlParams){
       console.log('updating record ' + urlParams.id);
-      model.findByIdAndUpdate(urlParams, req.body, function(err, document){
+      model.findByIdAndUpdate(urlParams.id, req.body, function(err, document){
         console.log(JSON.stringify(document));
         res.end(JSON.stringify(document));
       });
     };
     var remove = function(model, urlParams){
       console.log('deleting record ' + urlParams.id);
-      model.findByIdAndRemove(urlParams, function(err, docx){
+      model.findByIdAndRemove(urlParams.id, function(err, docx){
+        if (err){
+          console.log("error removing document");
+        } else {
         console.log('found record ' + docx);
         res.end("Document removed");
+        }
       });
     };
     var trailblazer = function(model, urlParams, method){
@@ -83,11 +89,11 @@ module.exports = function(settings){
           root(model, urlParams);
         }
       } else if (method === 'POST'){
-        create(model, urlParams.id);
+        create(model, urlParams);
       } else if (method === 'PUT'){
-        modify(model, urlParams.id);
+        modify(model, urlParams);
       } else if (method === 'DELETE'){
-        remove(model, urlParams.id);
+        remove(model, urlParams);
       }
     };
 
