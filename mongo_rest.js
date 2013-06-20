@@ -4,20 +4,19 @@ var querystring = require('querystring');
 var mongoose = require('mongoose');
 
 module.exports = function(settings){
-//build models if none passed in
+  //build models for collections when no collection passed in
   if (settings.hasOwnProperty('url')){
-    console.log('url found');
     mongoose.connect(settings.url + '/' + settings.dbname);
     var db = mongoose.connection;
     db.on('error',console.error.bind(console, 'connection error:'));
     db.once('open',function(){
-      console.log('db connection opened');
       for (var coll in settings.collections){
+        if(!settings.collections[coll].model){
         settings.collections[coll].model = mongoose.model(coll, settings.collections[coll].schema);
+        }
       }
     });
   }
-
 
   return function(req,res,next){
     var root = function(model, urlParams){
