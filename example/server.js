@@ -18,7 +18,7 @@ var humanSchema = mongoose.Schema({
 var human = mongoose.model('human', humanSchema);
 
 app.use('/', express.static(__dirname));
-app.use(express.bodyParser());
+//app.use(express.bodyParser());  //this shoudn't be necessary
 //set up a passport basic strategy for authentication
 passport.use(new BasicStrategy(
   function(username, password, done) {
@@ -42,7 +42,11 @@ app.use(mongo_rest({
   collections: {
     robots: {
       methods: ['GET','POST','PUT', 'DELETE'],
-      schema: robotSchema
+      schema: robotSchema,
+      options: {
+        sortBy: 'favorite_law',
+        selectFields: ['name','favorite_law']
+      }
     },
     humans: {
       methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -51,4 +55,6 @@ app.use(mongo_rest({
   }
 }));
 
-app.listen(8081);
+var port = 8081;
+app.listen(port);
+console.log("listening at: " + port);

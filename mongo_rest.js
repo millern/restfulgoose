@@ -23,9 +23,22 @@ module.exports = function(settings){
     var root = function(model, urlParams){
       console.log("...find all by model...");
       var query = model.find({});
-      chooseSortOrder(query, urlParams.collectionName);
-      chooseSelectFields(query, urlParams.collectionName);
+      //call sorting functions or 
+      if (settings.sortOrder){
+        settings.sortOrder();
+      } else {
+        chooseSortOrder(query, urlParams.collectionName);
+      }
+      if (settings.selectFields){
+        settings.selectFields();
+      } else {
+        chooseSelectFields(query, urlParams.collectionName);
+      }
+      if (settings.searchQuery){
+        settings.searchQuery();
+      } else {
       chooseSearchQuery(query, urlParams.queryParams);
+      }
       query.exec(function(err, documents){
       res.end(JSON.stringify(documents));
       });
@@ -44,7 +57,7 @@ module.exports = function(settings){
         }
       }
     };
-    var chooseSearchQuery = function(query, queryParams){
+    var chooseSearchQuery = function(query, queryParams, req){
       //parameters from query string
       if(Object.keys(queryParams).length > 0){
         query.find(queryParams);
