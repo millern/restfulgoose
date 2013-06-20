@@ -2,7 +2,7 @@ var mongoose = require('mongoose');
 var mongodb = require('mongodb');
 var BSON = mongodb.BSONPure;
 
-mongoose.connect('mongodb://localhost/robots');
+mongoose.connect('mongodb://localhost/testdb');
 var db = mongoose.connection;
 db.on('error',console.error.bind(console, 'connection error:'));
 db.once('open',function(){
@@ -20,4 +20,4 @@ db.once('open',function(){
   alan = new testModel({prop1: 1, prop2: "Alan"});
   ziggy = new testModel({prop1: 99, prop2: "Ziggy"});
   nick.save(); tucker.save(); fred.save(); alan.save(); ziggy.save();
-  });
+});
