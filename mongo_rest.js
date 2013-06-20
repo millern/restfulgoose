@@ -2,6 +2,7 @@ var url = require('url');
 var _ = require('underscore');
 var querystring = require('querystring');
 var mongoose = require('mongoose');
+var connect = require('connect');
 
 module.exports = function(settings){
   //build models for collections when no collection passed in
@@ -80,22 +81,24 @@ module.exports = function(settings){
         }
       });
     };
-    var trailblazer = function(model, urlParams, method){
-      if (method === 'GET'){
+    function trailblazer(){
+      console.log("routing reached");
+      if (req.method === 'GET'){
         if (urlParams.id){
           show(model, urlParams.id, urlParams.collectionName);
         } else {
           root(model, urlParams);
         }
-      } else if (method === 'POST'){
+      } else if (req.method === 'POST'){
         create(model, urlParams);
-      } else if (method === 'PUT'){
+      } else if (req.method === 'PUT'){
         modify(model, urlParams);
-      } else if (method === 'DELETE'){
+      } else if (req.method === 'DELETE'){
         remove(model, urlParams);
       }
-    };
+    }
 
+    //set the url params
     var parsedUrl = url.parse(req.url, true);
     var pathParts = parsedUrl.pathname.split('/');
     var api = pathParts[1];
@@ -114,7 +117,14 @@ module.exports = function(settings){
     }
 
     function callPath() {
-      trailblazer(model, urlParams, req.method);  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
+      console.log("callpath reached");
+      if(!req.body){
+        console.log("parsing body");
+        connect.bodyParser()(req,res,trailblazer);
+      } else {
+        console.log("body already parsed");
+        trailblazer();  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
+      }
     }
 
     if (settings.collections.hasOwnProperty(collectionName) && _.contains(settings.collections[collectionName].methods,req.method) && settings.basepath === api){
