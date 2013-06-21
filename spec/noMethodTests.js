@@ -60,10 +60,10 @@ function testSuite(testInfo){
     .next()
     .del('/api/robots/51bcb778ae39aff660000001',{})
     .expect(404)
-    .run(testcb);
+    .run(endProcess);
 }
 
-function testcb(){
+function endProcess(){
   console.log("closing server");
   svr.close();
   process.exit();

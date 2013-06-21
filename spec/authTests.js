@@ -45,73 +45,23 @@ function prepareTestDb(testInfo){
 }
 
 function testSuite(testInfo){
-  console.log("test suite 1");
 var suite = APIeasy.describe('mongoose api');
-suite.use('localhost', 8081)
+suite.use('localhost', 8083)
+  .describe('when using an authorization message')
+  .setHeader('Content-Type','application/json')
   .get('/api/robots')
-  .expect(200)
-  .expect("should respond with all elements in collection", function(err, res, body){
-   var result = JSON.parse(body);
-     assert.isNotNull(result);
-     assert(_.contains(_(result).pluck('name'),'WallE'));
-     assert(_.contains(_(result).pluck('name'),'Roomba'));
-     assert(_.contains(_(result).pluck('name'),'Hal'));
-     assert(_.contains(_(result).pluck('name'),'Terminator'));
-  })
-  .get('/api/robots/51bcb778ae39aff660000001')
-  .expect(200)
-  .expect("should return a single result", function(err, res, body){
+  .expect(401)
+  .expect("should return an unauthorized message", function(err, res, body){
     var result = JSON.parse(body);
-    assert.equal(result.name,"WallE");
-    assert.equal(result.type,"Box");
-    assert.equal(result.favorite_law,3);
-  })
-  .get('/api/robots/?name=Terminator')
-  .expect(200)
-  .expect("should return results where the name is Terminator", function(err, res, body){
-    var result = JSON.parse(body);
-    assert(result.length===1);
-    assert.equal(result[0].name, "Terminator");
-    assert.equal(result[0].type, "Assassin");
-    assert.equal(result[0].favorite_law, 0);
+    assert.equal(result, "user not authorized");
   })
   .next()
-  .setHeader('Content-Type', 'application/json')
-  .post('/api/robots',{name: "Inspector Gadget", type: "Detective", favorite_law: 4})
-  .expect(200)
-  .expect("should respond with the inserted element", function(err, res, body){
-     var result = JSON.parse(body);
-     assert.equal(result.name,"Inspector Gadget");
-     assert.equal(result.type,"Detective");
-     assert.equal(result.favorite_law, 4);
-     postID = result._id;
-  })
-  .next()
-  .put('/api/robots/51bcb778ae39aff660000001', {name: "Inspector Gadget", type: "Detective", favorite_law: 4})
-  .expect(200)
-  .expect("should return an object on a put", function(err, res, body){
-     var result = JSON.parse(body);
-     assert.equal(result.favorite_law, 4);
-  })
-  .next()
-  .del('/api/robots/51bcb778ae39aff660000001',{})
-  .expect(200)
-  .expect("should return a confirmation", function(err, res, body){
-    assert.equal(body, "Document removed");
-  })
-  .discuss('passing a second collecdtion as a model')
-  .get('/api/humans')
+  .setHeader("authorization","123456789")
+  .get('/api/robots')
   .expect(200)
   .expect('should return all elements in the collection', function(err, res, body){
     var result = JSON.parse(body);
-    assert.equal(result.length, 3);
-  })
-  .post('/api/humans',{name: "Davis", personality: "studious", age: 90})
-  .expect(200)
-  .expect("should return the inserted document", function(err, res, body){
-    var result = JSON.parse(body);
-    assert.equal(result.name, "Davis");
-    assert.equal(result.personality,"studious");
+    assert.equal(result.length, 4);
   })
   .run(endProcess);
 }
@@ -120,6 +70,7 @@ function endProcess(){
   svr.close();
   process.exit();
 }
+
 var app = express();
 
 app.use(mongo_rest({
@@ -129,20 +80,33 @@ app.use(mongo_rest({
   collections: {
     robots: {
       methods: ['GET','POST','PUT', 'DELETE'],
-      schema: robotSchema
+      schema: robotSchema,
+      auth: function(req, res, next){
+        console.log("authorizing request");
+        console.log(req.headers['authorization']);
+        if (req.headers['authorization'] === '123456789'){
+          next();
+        } else {
+          res.statusCode = 401;
+          res.end(JSON.stringify('user not authorized'));
+        }
+      }
     },
     humans: {
       methods: ['GET', 'POST', 'PUT', 'DELETE'],
       model: humanModel
+      //auth: function(){
+        //TODO:  set up passport authentication and use as authentication
+      //}
     }
   }
 }));
 
-var svr = app.listen(8081);
+var svr = app.listen(8083);
 appInfo = {
   app: app,
-  db: 'testdb0',
-  port: 8081,
+  db: 'testdb3',
+  port: 8083,
   cb: testSuite
 };
 
