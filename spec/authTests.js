@@ -47,7 +47,6 @@ function prepareTestDb(testInfo){
 function testSuite(testInfo){
 var suite = APIeasy.describe('mongoose api');
 suite.use('localhost', 8083)
-  .describe('when using an authorization message')
   .setHeader('Content-Type','application/json')
   .get('/api/robots')
   .expect(401)

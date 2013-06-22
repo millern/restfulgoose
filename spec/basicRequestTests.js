@@ -25,12 +25,10 @@ function prepareTestDb(testInfo){
   var db = mongoose.connection;
   db.on('error',console.error.bind(console, 'connection error:'));
   db.once('open',function(){
-    console.log('db connection opened');
     testInfo.robotModel = mongoose.model('robot', robotSchema);
     testInfo.humanModel = mongoose.model('human', humanSchema);
     testInfo.robotModel.find({}).remove();
     testInfo.humanModel.find({}).remove();
-    console.log("removing test elements");
     WallE = new testInfo.robotModel({name: "WallE", type: "Box", favorite_law: 3, _id: new BSON.ObjectID("51bcb778ae39aff660000001")});
     Roomba = new testInfo.robotModel({name: "Roomba", type: "Vacuum", favorite_law: 1});
     Hal = new testInfo.robotModel({name: "Hal", type: "Pilot", favorite_law: 2});
@@ -45,7 +43,6 @@ function prepareTestDb(testInfo){
 }
 
 function testSuite(testInfo){
-  console.log("test suite 1");
 var suite = APIeasy.describe('mongoose api');
 suite.use('localhost', 8081)
   .get('/api/robots')
