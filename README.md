@@ -5,7 +5,7 @@ Express middleware to create a RESTful API from a mongo database.
 # Installation
 
 ```bash
- $npm install mongo_rest
+ $npm install restfulgoose
 ```
 # Usage
 
@@ -14,25 +14,25 @@ See `example` directory for a working server
 ```js
 var app = require('express')();
 var mongoose = require('mongoose');
-var mongo_rest = require('../mongo_rest.js');
+var mongo_rest = require('restfulgoose');
 
 //set up a mongoose schema
 var robotSchema = mongoose.Schema({
   name: String,
   type: String,
-  favorite_law: Number
+  speed: Number
 });
 
 app.use(mongo_rest({
-  basepath: 'api', //path that api endpoints will be exposed at.  e.g., localhost/api/collection
-  dbname: 'testdb',
-  url: 'mongodb://localhost',
+  basepath: 'api', //path that the api will be exposed at.  e.g., localhost/api/collectionname
+  dbname: 'testdb',  
+  url: 'mongodb://localhost',  //url of the mongodb.  Db connection will be made at mongodb://localhost/testdb
   collections: {
     //by default, this api will be exposed at 'api/robots'
     robots: {
-      methods: ['GET','POST','PUT', 'DELETE'],
+      methods: ['GET','POST','PUT', 'DELETE'],  //
       schema: robotSchema,
-      path: robotFactory //override the default path and expose api at 'api/robotFactory'
+      path: robotLounge //optionally expose the api at a different url, api/robotLounge in this case
     }
   }
 }));
@@ -41,46 +41,32 @@ app.listen(8081);
 ```
 ## Passing in Models
 
-There are two ways to tell mongo_rest about your Mongoose models.  
+There are two ways to tell restfulgoose about your Mongoose models:  
 -Pass in Mongoose models directly
--Pass in a url and a schema
+-Pass in a url and a schema.  
 
 ```js
-var robotSchema = mongoose.Schema({
-     name: String,
-     law: Number
-   });
+var robotSchema = mongoose.Schema({name: String, type: String, speed: Number});
+var humanSchema = mongoose.Schema({name: String, personality: String, age: Number});
 var Robot = mongoose.model('Robot',robotSchema);
 
-//both of the following configurations are valid
+//The following configuration is valid for the above schema
 
-//...
 app.use(mongo_rest({
-methods: ['GET'],
-url: 'http://localhost',
-collections: {
-  robots: {
-    methods: ['GET','POST'],
-    schema: robotSchema
+  methods: ['GET'],
+  url: 'http://localhost',
+  collections: {
+    robots: {
+      methods: ['GET','POST'],
+      model: robotSchema
+    },
+    humans: {
+      methods: ['GET', 'POST'],
+      schema: humanSchema
+    }
   }
-}
 }));
-
-// -OR-
-
-//...
-app.use(mongo_rest({
-methods: ['GET'],
-//do not pass a url in
-collections: {
-  robots: {
-    methods: ['GET', 'POST'],
-    model: Robot
-  }
-}
-}));
-```
-Note that both methods cannot be used within the same application.  Do not pass a model to one collection and a schema to another.  
+````
 
 
 ## Authorization
@@ -120,7 +106,7 @@ collections: {
       path: robotFactory,
       options: {
         sortBy: '-name' //sort by name in descending order
-        selectFields: ['name', 'favorite_law']  //only return these fields
+        selectFields: ['name', 'speed']  //only return these fields
       }
     }
   }
@@ -149,7 +135,7 @@ robots: {
 Right now, we can use the url to query the collection for matches.  
 
 -`GET` to `/api/robots?name=WallE` returns robots with the name WallE
--`GET` to `/api/robots?type=vaccuum&favorite_law=3` returns robots of type vacuum whose favorite law is 3
+-`GET` to `/api/robots?type=vaccuum&speed=3` returns robots of type vacuum whose favorite law is 3
 
 
 [0]: http://passportjs.org/
