@@ -7,7 +7,31 @@ Express middleware to create a RESTful API from a mongo database.
 ```bash
  $npm install restfulgoose
 ```
+
 # Usage
+
+Restfulgoose will expose a mongoose colleciton to an api endpoint.  For example, the collection `robots` defined by robotSchema
+
+```js
+var robotSchema = mongoose.Schema({
+  name: String,
+  type: String,
+  speed: Number
+});
+```
+
+will respond to the following requests.  
+
+<table>
+<tr><th>Request</th><th>Response</th></tr>
+<tr><td>GET /api/robots</td><td>Get all in collection robots</td></tr>
+<tr><td>GET /api/robots/1</td><td>Get robot with Id 1</td></tr>
+<tr><td>POST /api/robots</td><td>Create a new robot</td></tr>
+<tr><td>PUT /api/robots/1</td><td>Update the robot with Id 1</td></tr>
+<tr><td>DELETE /api/robots/1</td><td>Delete the robot with Id 1</td></tr>
+</table>
+
+# Setup
 
 See `example` directory for a working server
 
@@ -42,27 +66,26 @@ app.listen(8081);
 ## Passing in Models
 
 There are two ways to tell restfulgoose about your Mongoose models:  
--Pass in Mongoose models directly
--Pass in a url and a schema.  
+- Pass in Mongoose models directly
+- Pass in a url and a schema.  
 
 ```js
 var robotSchema = mongoose.Schema({name: String, type: String, speed: Number});
 var humanSchema = mongoose.Schema({name: String, personality: String, age: Number});
 var Robot = mongoose.model('Robot',robotSchema);
 
-//The following configuration is valid for the above schema
-
 app.use(mongo_rest({
   methods: ['GET'],
+  dbname: 'testdb',
   url: 'http://localhost',
   collections: {
     robots: {
       methods: ['GET','POST'],
-      model: robotSchema
+      model: robotSchema //pass in the model directly
     },
     humans: {
       methods: ['GET', 'POST'],
-      schema: humanSchema
+      schema: humanSchema //a model will be defined from the db connection and schema
     }
   }
 }));
@@ -74,7 +97,8 @@ app.use(mongo_rest({
 
   Examples using [Passport][0] and a custom function for authentication.
 ```js
-//pass an authorization function to the collection 
+//pass an authorization function to the collection
+//...
 collections: {
   //...
   protectedCollection: {
@@ -112,20 +136,26 @@ collections: {
   }
 ```
 ##Custom Search Functions
-Optionally overwrite the function that determines the search query.  The serach query takes three arguments, a query, a parsed object from the url string, and a request. 
+Optionally overwrite the function that determines the search query.  The serach query takes three arguments, a Mongoose query, a parsed object from the url string, and a request. 
 ```js
   
 robots: {
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   schema: robotSchema,
-  searchQuery: function(query, queryParams, req){
+  searchQuery: function(query, queryParams, req){ 
     //for example, a mongoose query could be passed in the request
     if (req.query){
       query[req.query];
     }
   },
-  sortOrder: function(){},
-  selectFields: function(){}
+  sortOrder: function(query, queryParams,  req){
+   //var sortOptions = logic determining sort order
+   //query.sort(sortOptions)
+   },
+  selectFields: function(query, queryParams, req){
+   //var selectFields = logic determing which fields to select
+   //query.find(selectFields)
+   }
 }
 
 ```
