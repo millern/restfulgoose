@@ -1,6 +1,6 @@
 {
   "name": "restfulgoose",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "REST API Middleware for Mongo",
   "main": "mongo_rest.js",
   "dependencies": {
