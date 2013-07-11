@@ -43,6 +43,7 @@ app.use(mongo_rest({
     robots: {
       methods: ['GET','POST','PUT', 'DELETE'],
       schema: robotSchema,
+      path: 'robotFactory',
       options: {
         sortBy: 'favorite_law',
         selectFields: ['name','favorite_law']
@@ -50,7 +51,8 @@ app.use(mongo_rest({
     },
     humans: {
       methods: ['GET', 'POST', 'PUT', 'DELETE'],
-      model: human
+      model: human,
+      path: 'beings'
     }
   }
 }));

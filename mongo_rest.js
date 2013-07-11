@@ -13,36 +13,51 @@ module.exports = function(settings){
     db.once('open',function(){
       for (var coll in settings.collections){
         if(!settings.collections[coll].model){
-        settings.collections[coll].model = mongoose.model(coll, settings.collections[coll].schema);
+          settings.collections[coll].model = mongoose.model(coll, settings.collections[coll].schema);
         }
       }
     });
   }
+  //make array of collection access points
+  var collections = settings.collections;
+  var collMap = {};
+  for (var coll in collections){
+    if (collections[coll].hasOwnProperty('path')){
+      collMap[collections[coll]['path']] = coll;
+    } else {
+      collMap[coll] = coll;
+    }
+  }
+  console.log("collection map: ", collMap);
 
   return function(req,res,next){
     var root = function(model, urlParams){
-      console.log("...find all by model...");
       var query = model.find({});
-      //call sorting functions or 
       if (settings.sortOrder){
-        settings.sortOrder();
+        settings.sortOrder(query, queryParams, req);
       } else {
         chooseSortOrder(query, urlParams.collectionName);
       }
       if (settings.selectFields){
-        settings.selectFields();
+        settings.selectFields(query, queryParams, req);
       } else {
         chooseSelectFields(query, urlParams.collectionName);
       }
       if (settings.searchQuery){
-        settings.searchQuery();
+        settings.searchQuery(query, queryParams, req);
       } else {
       chooseSearchQuery(query, urlParams.queryParams);
       }
       query.exec(function(err, documents){
-      res.end(JSON.stringify(documents));
+        console.log('executing root query');
+        if (err){
+          console.log("Error fetching root");
+          return next(err);
+        }
+        res.end(JSON.stringify(documents));
       });
     };
+
     var chooseSortOrder = function(query, collectionName){
       if (settings.collections[collectionName].options){
         var sortBy = settings.collections[collectionName].options.sortBy || '';
@@ -58,56 +73,59 @@ module.exports = function(settings){
       }
     };
     var chooseSearchQuery = function(query, queryParams, req){
-      //parameters from query string
       if(Object.keys(queryParams).length > 0){
         query.find(queryParams);
       }
     };
     var show = function(model, urlParams){
-      console.log('finding by id: ' + urlParams);
       model.findById(urlParams, function(err, document) {
+        if (err){
+          return next(err);
+        } else {
         res.end(JSON.stringify(document));
+        }
       });
     };
     var create = function(model, urlParams){
-      console.log("...insert a new record...");
       model.create(req.body, function(err, document){
-        console.log(document + " inserted");
+        if (err){
+          console.log("Error creating document");
+          return next(err);
+        }
         res.end(JSON.stringify(document));
       });
     };
     var modify = function(model, urlParams){
-      console.log('updating record ' + urlParams.id);
       model.findByIdAndUpdate(urlParams.id, req.body, function(err, document){
-        console.log(JSON.stringify(document));
+        if (err){
+          console.log("Error modifying document");
+          return next(err);
+        }
         res.end(JSON.stringify(document));
       });
     };
     var remove = function(model, urlParams){
-      console.log('deleting record ' + urlParams.id);
       model.findByIdAndRemove(urlParams.id, function(err, docx){
         if (err){
-          console.log("error removing document");
-        } else {
-        console.log('found record ' + docx);
-        res.end("Document removed");
+          console.log("Error removing the document");
+          return next(err);
         }
+        res.end("Document removed");
       });
     };
     function trailblazer(){
-      console.log("routing reached");
       if (req.method === 'GET'){
         if (urlParams.id){
-          show(model, urlParams.id, urlParams.collectionName);
+          show(urlParams.model, urlParams.id, urlParams.collectionName);
         } else {
-          root(model, urlParams);
+          root(urlParams.model, urlParams);
         }
       } else if (req.method === 'POST'){
-        create(model, urlParams);
+        create(urlParams.model, urlParams);
       } else if (req.method === 'PUT'){
-        modify(model, urlParams);
+        modify(urlParams.model, urlParams);
       } else if (req.method === 'DELETE'){
-        remove(model, urlParams);
+        remove(urlParams.model, urlParams);
       }
     }
 
@@ -130,28 +148,34 @@ module.exports = function(settings){
     }
 
     function callPath() {
-      console.log("callpath reached");
       if(!req.body){
-        console.log("parsing body");
         connect.bodyParser()(req,res,trailblazer);
       } else {
-        console.log("body already parsed");
         trailblazer();  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
       }
     }
+    function enterAPI() {
+      if (settings.collections.hasOwnProperty(collectionName) && _.contains(settings.collections[collectionName].methods,req.method)){
+        var auth = settings.collections[collectionName].auth;
+        urlParams.model = settings.collections[collectionName].model;
+        if (typeof auth === "function") {
+          auth(req, res, callPath);
+        }
+        else {
+          callPath();
+        }
+      } else {
+        res.statusCode = 404;
+        res.end("Collection Not Found");
+      }
+    }
 
-    if (settings.collections.hasOwnProperty(collectionName) && _.contains(settings.collections[collectionName].methods,req.method) && settings.basepath === api){
-      var auth = settings.collections[collectionName].auth;
-      var model = settings.collections[collectionName].model;
-      if (typeof auth === "function") {
-        auth(req, res, callPath);
-      }
-      else {
-        callPath();
-      }
+    if (api === settings.basepath){
+      enterAPI();
     } else {
       next();
     }
+
   };
 };
 
