@@ -4,7 +4,7 @@ var APIeasy = require('api-easy');
 var express = require('express');
 var mongoose = require('mongoose');
 var mongodb = require('mongodb');
-var mongo_rest = require('../mongo_rest.js');
+var restfulgoose = require('../restfulgoose.js');
 var BSON = mongodb.BSONPure;
 var _ = require('underscore');
 
@@ -87,7 +87,7 @@ function endProcess(){
 }
 var app = express();
 
-app.use(mongo_rest({
+app.use(restfulgoose({
   basepath: 'api',
   dbname: 'testdb2',
   url: 'mongodb://localhost',
