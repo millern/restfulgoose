@@ -1,7 +1,7 @@
 var express = require('express');
 var app = express();
 var mongoose = require('mongoose');
-var mongo_rest = require('../mongo_rest.js');
+var restfulgoose = require('../restfulgoose.js');
 var passport = require('passport');
 var BasicStrategy = require('passport-http').BasicStrategy;
 
@@ -35,7 +35,7 @@ passport.use(new BasicStrategy(
   }
 ));
 
-app.use(mongo_rest({
+app.use(restfulgoose({
   basepath: 'api',  //path that api endpoints will be exposed at.  e.g., localhost/api/collection
   dbname: 'testdb',
   url: 'mongodb://localhost',  //db connection will be made at url/dbname
