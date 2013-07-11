@@ -4,8 +4,8 @@ var querystring = require('querystring');
 var mongoose = require('mongoose');
 var connect = require('connect');
 
-module.exports = function(settings){
-  //build models for collections when no collection passed in
+// Build models for collections when no collection passed in
+function buildModels(settings) {
   if (settings.hasOwnProperty('url')){
     mongoose.connect(settings.url + '/' + settings.dbname);
     var db = mongoose.connection;
@@ -18,7 +18,10 @@ module.exports = function(settings){
       }
     });
   }
-  //make array of collection access points
+}
+
+// Make array of collection access points
+function buildCollectionArray(settings) {
   var collections = settings.collections;
   var collMap = {};
   for (var coll in collections){
@@ -28,9 +31,17 @@ module.exports = function(settings){
       collMap[coll] = coll;
     }
   }
-  console.log("collection map: ", collMap);
+}
 
-  return function(req,res,next){
+
+module.exports = function(settings) {
+
+  buildModels(settings);
+
+  buildCollectionArray(settings);
+
+  return function(req,res,next) {
+
     var root = function(model, urlParams){
       var query = model.find({});
       if (settings.sortOrder){
@@ -46,14 +57,11 @@ module.exports = function(settings){
       if (settings.searchQuery){
         settings.searchQuery(query, queryParams, req);
       } else {
-      chooseSearchQuery(query, urlParams.queryParams);
+        chooseSearchQuery(query, urlParams.queryParams);
       }
       query.exec(function(err, documents){
-        console.log('executing root query');
-        if (err){
-          console.log("Error fetching root");
+        if (err)
           return next(err);
-        }
         res.end(JSON.stringify(documents));
       });
     };
@@ -79,37 +87,29 @@ module.exports = function(settings){
     };
     var show = function(model, urlParams){
       model.findById(urlParams, function(err, document) {
-        if (err){
+        if (err)
           return next(err);
-        } else {
         res.end(JSON.stringify(document));
-        }
       });
     };
     var create = function(model, urlParams){
       model.create(req.body, function(err, document){
-        if (err){
-          console.log("Error creating document");
+        if (err)
           return next(err);
-        }
         res.end(JSON.stringify(document));
       });
     };
     var modify = function(model, urlParams){
       model.findByIdAndUpdate(urlParams.id, req.body, function(err, document){
-        if (err){
-          console.log("Error modifying document");
+        if (err)
           return next(err);
-        }
         res.end(JSON.stringify(document));
       });
     };
     var remove = function(model, urlParams){
       model.findByIdAndRemove(urlParams.id, function(err, docx){
-        if (err){
-          console.log("Error removing the document");
+        if (err)
           return next(err);
-        }
         res.end("Document removed");
       });
     };
@@ -169,13 +169,10 @@ module.exports = function(settings){
         res.end("Collection Not Found");
       }
     }
-
     if (api === settings.basepath){
-      enterAPI();
+      enterAPI(req, res, next);
     } else {
       next();
     }
-
-  };
+    };
 };
-
