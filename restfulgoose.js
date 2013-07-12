@@ -1,5 +1,4 @@
 var url = require('url');
-var _ = require('underscore');
 var querystring = require('querystring');
 var mongoose = require('mongoose');
 var connect = require('connect');
@@ -49,7 +48,7 @@ var enterAPI = function(req, res, next) {
   var collections = settings.collections;
 
   // Enter the API if a route has been set up for this Collection/Method pair
-  if (collections.hasOwnProperty(collectionName) && _.contains(collections[collectionName].methods,req.method)){
+  if (collections.hasOwnProperty(collectionName) && contains(collections[collectionName].methods,req.method)){
     var auth = collections[collectionName].auth;
     req.urlParams.model = collections[collectionName].model;
 
@@ -68,6 +67,14 @@ var enterAPI = function(req, res, next) {
   }
 
 };
+
+var contains = function(array, item) {
+  for (var i = 0; i < array.length; i++) {
+    if (array[i] === item)
+      return true;
+  }
+  return false;
+}
 
 var callPath = function(req, res, next) {
 
