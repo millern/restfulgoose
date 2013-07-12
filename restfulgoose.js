@@ -3,9 +3,11 @@ var _ = require('underscore');
 var querystring = require('querystring');
 var mongoose = require('mongoose');
 var connect = require('connect');
+var settings;
 
 // Build models for collections when no collection passed in
-function buildModels(settings) {
+var  buildModels = function() {
+
   if (settings.hasOwnProperty('url')){
     mongoose.connect(settings.url + '/' + settings.dbname);
     var db = mongoose.connection;
@@ -18,10 +20,12 @@ function buildModels(settings) {
       }
     });
   }
-}
+
+};
 
 // Make array of collection access points
-function buildCollectionArray(settings) {
+var buildCollectionArray = function() {
+
   var collections = settings.collections;
   var collMap = {};
   for (var coll in collections){
@@ -31,148 +35,200 @@ function buildCollectionArray(settings) {
       collMap[coll] = coll;
     }
   }
-}
 
+};
 
-module.exports = function(settings) {
+var isValidBSONId = function(id){
+  var regID = /[0-9a-z]{24}$/;
+  return regID.test(id);
+};
 
-  buildModels(settings);
+var enterAPI = function(req, res, next) {
 
-  buildCollectionArray(settings);
+  var collectionName = req.urlParams.collectionName;
+  var collections = settings.collections;
+
+  // Enter the API if a route has been set up for this Collection/Method pair
+  if (collections.hasOwnProperty(collectionName) && _.contains(collections[collectionName].methods,req.method)){
+    var auth = collections[collectionName].auth;
+    req.urlParams.model = collections[collectionName].model;
+
+    // If auth function provided, call it as middleware, passing our next function as 'next'
+    if (typeof auth === "function") {
+      auth(req, res, function(){
+        callPath(req, res, next);
+      });
+    }
+    else {
+      callPath(req,res,next);
+    }
+  } else {
+    res.statusCode = 404;
+    res.end("Collection Not Found");
+  }
+
+};
+
+var callPath = function(req, res, next) {
+
+  if(!req.body){
+    connect.bodyParser()(req, res, function() {
+      dispatch(req, res, next);
+    });
+  } else {
+    dispatch(req, res, next);
+  }
+
+};
+
+var dispatch = function(req, res, next){
+
+  if (req.method === 'GET') {
+    if (req.urlParams.id)
+      show(req, res, next);
+    else
+      root(req, res, next);
+  } else if (req.method === 'POST'){
+    create(req, res, next);
+  } else if (req.method === 'PUT'){
+    modify(req, res, next);
+  } else if (req.method === 'DELETE'){
+    remove(req, res, next);
+  }
+
+};
+
+var show = function(req, res, next){
+
+  req.urlParams.model.findById(req.urlParams.id, function(err, document) {
+    if (err)
+      return next(err);
+    res.end(JSON.stringify(document));
+  });
+
+};
+
+//var root = function(model, urlParams){
+var root = function(req, res, next){
+
+  // Initialize a query for the requested model
+  var query = req.urlParams.model.find({});
+
+  // If present, use custom sort function.  Else, choose sort order from options.
+  if (settings.collections[req.urlParams.collectionName].sortOrder){
+    settings.sortOrder(query, req.urlParams.queryParams, req);
+  } else {
+    chooseSortOrder(query, req.urlParams.collectionName);
+  }
+  if (settings.selectFields){
+    settings.selectFields(query, req.urlParams.queryParams, req);
+  } else {
+    chooseSelectFields(query, req.urlParams.collectionName);
+  }
+  if (settings.searchQuery){
+    settings.searchQuery(query, req.urlParams.queryParams, req);
+  } else {
+    chooseSearchQuery(query, req.urlParams.queryParams);
+  }
+
+  query.exec(function(err, documents){
+    if (err)
+      return next(err);
+    res.end(JSON.stringify(documents));
+  });
+
+};
+
+var chooseSortOrder = function(query, collectionName){
+
+  if (settings.collections[collectionName].options){
+    var sortBy = settings.collections[collectionName].options.sortBy || '';
+    query.sort(sortBy);
+  }
+
+};
+
+var chooseSelectFields = function(query, collectionName){
+
+  if(settings.collections[collectionName].options){
+    var selectFields = settings.collections[collectionName].options.selectFields;
+    if(selectFields && selectFields.length > 0) {
+      query.select(selectFields.join(' '));
+    }
+  }
+
+};
+
+var chooseSearchQuery = function(query, queryParams, req){
+
+  if(Object.keys(queryParams).length > 0) {
+    query.find(queryParams);
+  }
+
+};
+
+var create = function(req, res, next) {
+
+  req.urlParams.model.create(req.body, function(err, document){
+    if (err)
+      return next(err);
+    res.end(JSON.stringify(document));
+  });
+
+};
+
+var modify = function(req, res, next) {
+
+  req.urlParams.model.findByIdAndUpdate(req.urlParams.id, req.body, function(err, document){
+    if (err)
+      return next(err);
+    res.end(JSON.stringify(document));
+  });
+
+};
+
+var remove = function(req, res, next) {
+
+  req.urlParams.model.findByIdAndRemove(req.urlParams.id, function(err, docx){
+    if (err)
+      return next(err);
+    res.end("Document removed");
+  });
+
+};
+
+module.exports = function(_settings) {
+
+  settings = _settings;
+
+  buildModels();
+
+  buildCollectionArray();
 
   return function(req,res,next) {
 
-    var root = function(model, urlParams){
-      var query = model.find({});
-      if (settings.sortOrder){
-        settings.sortOrder(query, queryParams, req);
-      } else {
-        chooseSortOrder(query, urlParams.collectionName);
-      }
-      if (settings.selectFields){
-        settings.selectFields(query, queryParams, req);
-      } else {
-        chooseSelectFields(query, urlParams.collectionName);
-      }
-      if (settings.searchQuery){
-        settings.searchQuery(query, queryParams, req);
-      } else {
-        chooseSearchQuery(query, urlParams.queryParams);
-      }
-      query.exec(function(err, documents){
-        if (err)
-          return next(err);
-        res.end(JSON.stringify(documents));
-      });
-    };
-
-    var chooseSortOrder = function(query, collectionName){
-      if (settings.collections[collectionName].options){
-        var sortBy = settings.collections[collectionName].options.sortBy || '';
-        query.sort(sortBy);
-      }
-    };
-    var chooseSelectFields = function(query, collectionName){
-      if(settings.collections[collectionName].options){
-        var selectFields = settings.collections[collectionName].options.selectFields;
-        if(selectFields && selectFields.length > 0){
-          query.select(selectFields.join(' '));
-        }
-      }
-    };
-    var chooseSearchQuery = function(query, queryParams, req){
-      if(Object.keys(queryParams).length > 0){
-        query.find(queryParams);
-      }
-    };
-    var show = function(model, urlParams){
-      model.findById(urlParams, function(err, document) {
-        if (err)
-          return next(err);
-        res.end(JSON.stringify(document));
-      });
-    };
-    var create = function(model, urlParams){
-      model.create(req.body, function(err, document){
-        if (err)
-          return next(err);
-        res.end(JSON.stringify(document));
-      });
-    };
-    var modify = function(model, urlParams){
-      model.findByIdAndUpdate(urlParams.id, req.body, function(err, document){
-        if (err)
-          return next(err);
-        res.end(JSON.stringify(document));
-      });
-    };
-    var remove = function(model, urlParams){
-      model.findByIdAndRemove(urlParams.id, function(err, docx){
-        if (err)
-          return next(err);
-        res.end("Document removed");
-      });
-    };
-    function trailblazer(){
-      if (req.method === 'GET'){
-        if (urlParams.id){
-          show(urlParams.model, urlParams.id, urlParams.collectionName);
-        } else {
-          root(urlParams.model, urlParams);
-        }
-      } else if (req.method === 'POST'){
-        create(urlParams.model, urlParams);
-      } else if (req.method === 'PUT'){
-        modify(urlParams.model, urlParams);
-      } else if (req.method === 'DELETE'){
-        remove(urlParams.model, urlParams);
-      }
-    }
-
-    //set the url params
+    // Parse the url 
     var parsedUrl = url.parse(req.url, true);
+
+    // PathParts [1] - api, [2] - collection, [3] - id, [4] - query 
     var pathParts = parsedUrl.pathname.split('/');
     var api = pathParts[1];
-    var collectionName = pathParts[2];
 
-    var urlParams = {
-      collectionName: pathParts[2],
-      id: isValidId(pathParts[3]) ? pathParts[3] : null,
-      nestedQuery: pathParts[4],
-      queryParams: parsedUrl.query
-    };
+    // Determine whether this request is directed at the API
+    if (api === settings.basepath) {
 
-    function isValidId(id){
-      var regID = /[0-9a-z]{24}$/;
-      return regID.test(id);
-    }
+      req.urlParams = {
+        collectionName: pathParts[2],
+        id: isValidBSONId(pathParts[3]) ? pathParts[3] : null,
+        nestedQuery: pathParts[4],
+        queryParams: parsedUrl.query
+      };
 
-    function callPath() {
-      if(!req.body){
-        connect.bodyParser()(req,res,trailblazer);
-      } else {
-        trailblazer();  //pathParts - 1 = api exposure root, 2 = collection, 3 = id
-      }
-    }
-    function enterAPI() {
-      if (settings.collections.hasOwnProperty(collectionName) && _.contains(settings.collections[collectionName].methods,req.method)){
-        var auth = settings.collections[collectionName].auth;
-        urlParams.model = settings.collections[collectionName].model;
-        if (typeof auth === "function") {
-          auth(req, res, callPath);
-        }
-        else {
-          callPath();
-        }
-      } else {
-        res.statusCode = 404;
-        res.end("Collection Not Found");
-      }
-    }
-    if (api === settings.basepath){
+      // Enter the module
       enterAPI(req, res, next);
     } else {
       next();
     }
-    };
+
+  };
 };
